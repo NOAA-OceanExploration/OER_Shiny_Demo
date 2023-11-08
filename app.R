@@ -3,12 +3,12 @@
 library(shiny)
 library(shinydashboard)
 library(ggplot2)
-devtools::install_github("shgroves/NOAA.Explore.QAQC")
+#devtools::install_github("shgroves/NOAA.Explore.QAQC")
 #library(NOAA.Explore.QAQC)
 
-dat <- NOAA.Explore.QAQC::ASPIRE_SHIP_CTD_data 
-#load(here::here("data/ASPIRE_SHIP_CTD_data.rda"))
-#dat <- ASPIRE_SHIP_CTD_data
+#dat <- NOAA.Explore.QAQC::ASPIRE_SHIP_CTD_data 
+load(here::here("data/ASPIRE_SHIP_CTD_data.rda"))
+dat <- ASPIRE_SHIP_CTD_data
 
 ui <- tagList( 
   #dashboard page-----
