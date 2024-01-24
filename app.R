@@ -4,21 +4,18 @@ library(shiny)
 library(shinydashboard)
 library(ggplot2)
 #devtools::install_github("shgroves/NOAA.Explore.QAQC")
-library(NOAA.Explore.QAQC)
+#library(NOAA.Explore.QAQC)
 
-#dat <- NOAA.Explore.QAQC::ASPIRE_SHIP_CTD_data 
 load(here::here("data/ASPIRE_SHIP_CTD_data.rda"))
 dat <- ASPIRE_SHIP_CTD_data
 
-group <- c("Cnidaria", "Porifera", "Echinodermata")
+group <- c("Cnidaria", "Porifera", "Echinodermata", "Chordata")
 
 load(here::here("data/ASPIRE_ROV_BIOPHYS_data.rda"))
-# dat2 <- ASPIRE_ROV_BIOPHYS_data |> 
-#   dplyr::filter(grepl("Anthozoa|Porifera|Echinodermata", Taxon_Path)) 
 
 dat2 <- ASPIRE_ROV_BIOPHYS_data |> 
   dplyr::filter(Phylum %in% group) |>
-  dplyr::select(cruise, dive_number, Phylum, Class, Order, Genus, Species, ROV1_tempC_SBE, ROV1_lat_dd, ROV1_lon_dd, ROV1_depth_m, ROV1_depth_m_time) |>
+  dplyr::select(cruise, dive_number, Phylum, Class, Order, Genus, Species, ROV1_tempC_SBE, ROV1_O2_mgL, ROV1_lat_dd, ROV1_lon_dd, ROV1_depth_m, ROV1_depth_m_time) |>
   dplyr::filter(!grepl("^\\s*$", ROV1_depth_m)) |>
   dplyr::mutate(present = 1,
                 ROV1_depth_m = round(as.numeric(ROV1_depth_m, 3))) |>
@@ -75,13 +72,22 @@ ui <- tagList(
       tabItems(
         #Home page-----
         tabItem(tabName = "home_tab", fluidPage(
-          fluidRow(h2("Home page explanatory text"),
-                   p("Explanatory text and maybe some photos..."))
+          fluidRow(h2("Welcome to the NOAA Ocean Exploration data visualization tool for the ASPIRE Campaign."),
+                   p("This tool is currently in development for demonstration purposes."),
+                   column(4, img(src = "ctd-380.jpg"),
+                          hr(),
+                   img(src = "ex2206-dive08-goosefish-380.jpg")),
+                   column(4, img(src = "ex2206-dive03-medusa-380.jpg"),
+                          hr(),
+                          img(src = "ex2206-dive08-unknown-380.jpg")),
+                   column(4, img(src = "dive10-bigfin-squid-380.jpg"),
+                          hr(),
+                          img(src = "dive05-volcanic-pillow-mound-380.jpg")))
         )), 
         #CTDR page-----
         tabItem(tabName = "CTDR_tab", fluidPage(
           fluidRow(h2("CTD Rosette"),
-                   p("Explanatory text...")
+                   p("Use the drop down menus below to select the expedition, dive, and sensor of interest.")
           ), # END FLUID ROW
           
           fluidRow(
@@ -110,11 +116,11 @@ ui <- tagList(
                                            "Dissolved Oxygen (mg/L)" = "oxygen2",
                                            "Oxygen reduction potential" = "upoly",
                                            "Sound speed (m/s)" = "soundSpeed")),
-                   checkboxInput("WOA", "Show NOAA World Ocean Atlas values", value = FALSE),
-                   
+                   checkboxInput("WOA", "Plot NOAA World Ocean Atlas values (NOT OPERATIONAL)", value = FALSE),
+                   downloadButton("download1"),
                    # Horizontal line for visual separation
-                   hr(),
-                   helpText("Data from the CTD Rosette collected during the ASPIRE campaign")
+                   p("Use the download buttom to export the data in .csv format."),
+                   helpText("Data from the CTD Rosette collected during the ASPIRE campaign. Downloads will inlcude the entire sensor suite for the expedition and cast selected.")
             ),
             column(7, plotOutput("ctdPlot"))
           ) # END FLUID ROW
@@ -128,32 +134,33 @@ ui <- tagList(
                 fluidPage(
                   tabsetPanel(
                     tabPanel("Overall",
-                             fluidRow(h2("Benthic biological observations"),
-                                      p("Explanatory text...")
+                             fluidRow(h2("Biological observations"),
+                                      p("Use the drop down menus below to select the phyla and subtaxa of interest.")
                              ), # END Overall FLUID ROW 1
                              
                              fluidRow(
                                column(4, selectInput(inputId = "taxon1",
                                                      label = "Phylum:",
-                                                     choices = c("Cnidaria", "Porifera", "Echinodermata")),
+                                                     choices = c("Cnidaria", "Porifera", "Echinodermata", "Chordata")),
                                       
                                       selectInput(inputId = "taxon2",
                                                   label = "Subtaxa:",
                                                   choices = c("Class", "Order", "Genus", "Species")),
                                       
-                                      checkboxInput("ROVCTD_temp", "Show ROV CTD temperature (C)", value = FALSE),
+                                      checkboxInput("ROVCTD_sensor", "A future feature could overlay a ROV sensor profile (temp., O2) on the plot when you check this box. What would you like to see?", value = FALSE),
+                                      downloadButton("download2"),
                                       
                                       # Horizontal line for visual separation
-                                      hr(),
-                                      helpText("Biological observations collected during the ASPIRE campaign for the Phlyum Cnidaria, Porifera, and Echinodermata.")
+                                      p("Use the download buttom to export the data in .csv format."),
+                                      helpText("Biological observations collected during the ASPIRE campaign for the phyla: Cnidaria, Porifera, Chordata, and Echinodermata.")
                                ),
                                column(8, plotOutput("bioPlot1"))
                              ) # END Overall FLUID ROW2
                     ), # END Overall tabPanel
                     
                     tabPanel("By expedition",
-                             fluidRow(h2("Benthic biological observations"),
-                                      p("Explanatory text...")
+                             fluidRow(h2("Biological observations"),
+                                      p("Use the drop down menus below to select the expedition, phyla, and subtaxa of interest.")
                              ), # END By expedition FLUID ROW 1
                              
                              fluidRow(
@@ -163,25 +170,26 @@ ui <- tagList(
                                       
                                       selectInput(inputId = "taxon3",
                                                   label = "Phylum:",
-                                                  choices = c("Cnidaria", "Porifera", "Echinodermata")),
+                                                  choices = c("Cnidaria", "Porifera", "Echinodermata", "Chordata")),
                                       
                                       selectInput(inputId = "taxon4",
                                                   label = "Subtaxa:",
                                                   choices = c("Class", "Order", "Genus", "Species")),
                                       
-                                      checkboxInput("ROVCTD_temp", "Show ROV CTD temperature (C)", value = FALSE),
+                                      checkboxInput("ROVCTD_sensor", "A future feature could overlay a ROV sensor profile (temp., O2) on the plot. What would you like to see?", value = FALSE),
+                                      downloadButton("download3"),
                                       
                                       # Horizontal line for visual separation
-                                      hr(),
-                                      helpText("Biological observations collected during the ASPIRE campaign for the Phlyum Cnidaria, Porifera, and Echinodermata.")
+                                      p("Use the download buttom to export the data in .csv format."),
+                                      helpText("Biological observations collected during the ASPIRE campaign for the phyla: Cnidaria, Porifera, Chordata, and Echinodermata.")
                                ),
                                column(8, plotOutput("bioPlot2"))
                              ) # END By expedition FLUID ROW2
                     ), # END By expedition tabPanel
                     
                     tabPanel("By dive",
-                             fluidRow(h2("Benthic biological observations"),
-                                      p("Explanatory text...")
+                             fluidRow(h2("Biological observations"),
+                                      p("Use the drop down menus below to select the expedition, dive, phylum, and subtaxa of interest.")
                              ), # END By dive FLUID ROW 1
                              
                              fluidRow(
@@ -195,17 +203,17 @@ ui <- tagList(
                                       
                                       selectInput(inputId = "taxon5",
                                                   label = "Phylum:",
-                                                  choices = c("Cnidaria", "Porifera", "Echinodermata")),
+                                                  choices = c("Cnidaria", "Porifera", "Echinodermata", "Chordata")),
                                       
                                       selectInput(inputId = "taxon6",
                                                   label = "Subtaxa:",
                                                   choices = c("Class", "Order", "Genus", "Species")),
                                       
-                                      checkboxInput("ROVCTD_temp", "Show ROV CTD temperature (C)", value = FALSE),
-                                      
+                                      #checkboxInput("ROVCTD_sensor", "A future feature could overlay a ROV sensor profile (temp., O2) on the plot. What would you like to see?", value = FALSE),
+                                      downloadButton("download4"),
                                       # Horizontal line for visual separation
-                                      hr(),
-                                      helpText("Biological observations collected during the ASPIRE campaign for the Phlyum Cnidaria, Porifera, and Echinodermata.")
+                                      p("Use the download buttom to export the data in .csv format."),
+                                      helpText("Biological observations collected during the ASPIRE campaign for the phyla: Cnidaria, Porifera, Chordata, and Echinodermata.")
                                ),
                                column(7, plotOutput("bioPlot3"))
                              ) # END By dive FLUID ROW 2
@@ -252,6 +260,22 @@ ui <- tagList(
 server <- function(input, output) {
   
   # Begin CTDR section
+  
+  # Downloads 
+  output$download1 = downloadHandler(
+    filename = function() {
+      paste0(
+        paste(input$expedition,input$cast,collapse="-") |>
+          stringr::str_replace(" ", "_") |>
+          tolower(), 
+        "CTD_OER_ASPIRE.csv"
+      )
+    },
+    content = function(file) {
+      readr::write_csv(subset_by_cast(), file)
+    }
+  )
+  
   # Create a subset of data filtering for expedition ------
   # This gets cached
   subset_by_exped <- reactive({
@@ -309,6 +333,52 @@ server <- function(input, output) {
   
   # Begin Bio tab section
   
+  # Downloads for each tab
+  ## Overall
+  output$download2 = downloadHandler(
+    filename = function() {
+      paste0(
+        paste(input$taxon1,collapse="-") |>
+          stringr::str_replace(" ", "_") |>
+          tolower(), 
+        "OER_ASPIRE.csv"
+      )
+    },
+    content = function(file) {
+      readr::write_csv(subset_by_phylum(), file)
+    }
+  )
+  
+  ## By expedition
+  output$download3 = downloadHandler(
+    filename = function() {
+      paste0(
+        paste(input$taxon1,input$expedition1,collapse="-") |>
+          stringr::str_replace(" ", "_") |>
+          tolower(), 
+        "OER_ASPIRE.csv"
+      )
+    },
+    content = function(file) {
+      readr::write_csv(subset_by_ph_ex(), file)
+    }
+  )
+  
+  ## By expedition
+  output$download4 = downloadHandler(
+    filename = function() {
+      paste0(
+        paste(input$taxon1,input$expedition1,input$dive, collapse="-") |>
+          stringr::str_replace(" ", "_") |>
+          tolower(), 
+        "OER_ASPIRE.csv"
+      )
+    },
+    content = function(file) {
+      readr::write_csv(subset_by_ph_ex_d(), file)
+    }
+  )
+  
   # Create subset for overall tab
   subset_by_phylum <- reactive({
     req(input$taxon1) # ensure availability of value before proceeding
@@ -350,7 +420,7 @@ server <- function(input, output) {
   # Overall Bio/depth Plot
   output$bioPlot1 <- renderPlot({ 
     
-    if (input$ROVCTD_temp) {
+    if (input$ROVCTD_sensor) {
       
       subset_by_phylum() |>
         ggplot(aes(x=reorder(.data[[input$taxon2]], ROV1_depth_m), y=ROV1_depth_m)) + 
@@ -376,12 +446,12 @@ server <- function(input, output) {
   # By expedition Bio/depth Plot
   output$bioPlot2 <- renderPlot({ # you could potentially source a function here.
     
-    if (input$ROVCTD_temp) {
+    if (input$ROVCTD_sensor) {
       
       subset_by_ph_ex() |>
         ggplot(aes(x=reorder(.data[[input$taxon4]], ROV1_depth_m), y=ROV1_depth_m)) + 
         geom_boxplot() +
-        theme(axis.text.x = element_text(angle = 45, vjust = 0, hjust=0),
+        theme(axis.text.x = element_text(angle = -90, vjust = 0, hjust=0),
               legend.position="none") + 
         ggtitle(paste(input$expedition2, input$taxon3,  sep=" ")) +
         labs(x = paste(input$taxon3, "observations by", input$taxon4), y = "Depth (m)") +
@@ -391,7 +461,7 @@ server <- function(input, output) {
       subset_by_ph_ex() |>
         ggplot(aes(x=reorder(.data[[input$taxon4]], ROV1_depth_m), y=ROV1_depth_m)) + 
         geom_boxplot() +
-        theme(axis.text.x = element_text(angle = 45, vjust = 0, hjust=0),
+        theme(axis.text.x = element_text(angle = -90, vjust = 0, hjust=0),
               legend.position="none") + 
         ggtitle(paste(input$expedition2, input$taxon3,  sep=" ")) +
         labs(x = paste(input$taxon3, "observations by", input$taxon4), y = "Depth (m)") +
@@ -402,37 +472,28 @@ server <- function(input, output) {
   # By dive Bio/depth Plot
   output$bioPlot3 <- renderPlot({ # you could potentially source a function here.
     
-    if (input$ROVCTD_temp) {
-      
+    # if (input$ROVCTD_sensor) {
+    #   
+    #   subset_by_ph_ex_d() |>
+    #     ggplot(aes(x=reorder(.data[[input$taxon6]], ROV1_depth_m), y=ROV1_depth_m)) + 
+    #     geom_point() +
+    #     theme(axis.text.x = element_text(angle = -90, vjust = 0, hjust=0),
+    #           legend.position="none") +
+    #     ggtitle(paste(input$expedition2, "dive", input$dive, input$taxon5,  sep=" ")) +
+    #     labs(x = paste(input$taxon5, "observations by", input$taxon6), y = "Depth (m)") +
+    #     scale_y_reverse()
+    #   
+    # } else {
       subset_by_ph_ex_d() |>
         ggplot(aes(x=reorder(.data[[input$taxon6]], ROV1_depth_m), y=ROV1_depth_m)) + 
         geom_point() +
-        theme(axis.text.x = element_text(angle = 45, vjust = 0, hjust=0),
+        theme(axis.text.x = element_text(angle = -90, vjust = 0, hjust=0),
               legend.position="none") +
         ggtitle(paste(input$expedition2, "dive", input$dive, input$taxon5,  sep=" ")) +
         labs(x = paste(input$taxon5, "observations by", input$taxon6), y = "Depth (m)") +
         scale_y_reverse()
-      
-    } else {
-      subset_by_ph_ex_d() |>
-        ggplot(aes(x=reorder(.data[[input$taxon6]], ROV1_depth_m), y=ROV1_depth_m)) + 
-        geom_point() +
-        theme(axis.text.x = element_text(angle = 45, vjust = 0, hjust=0),
-              legend.position="none") +
-        ggtitle(paste(input$expedition2, "dive", input$dive, input$taxon5,  sep=" ")) +
-        labs(x = paste(input$taxon5, "observations by", input$taxon6), y = "Depth (m)") +
-        scale_y_reverse()
-      
-      # dat2 |>
-      #   ggplot(aes(x=Class, y=ROV1_depth_m)) + 
-      #   geom_point() +
-      #   #ggtitle(paste(input$expedition, input$dive, input$taxon,  sep=" ")) +
-      #   #labs(x = paste(input$taxon, "observations"), y = "Depth (m)") +
-      #   theme_bw()
-      
-      
-    }
-  }) # End CTDR section 
+    #}
+  }) # End dive Bio/depth Plot
   
   showModal(modalDialog(
     title = 'Welcome! You have reached the Okeanos Explorer demo data dashboard. Explore physical and biological data collect during the ASPIRE campaign. This product is for demostration purposes and internal use only.',
